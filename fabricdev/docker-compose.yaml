@@ -1,0 +1,519 @@
+version: '3'
+
+networks:
+  byfn:
+
+services:
+  orderer.flxdu.cn:
+    container_name: orderer.flxdu.cn
+    image: hyperledger/fabric-orderer:2.4
+    restart: always
+    environment:
+      - ORDERER_GENERAL_LOGLEVEL=debug
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/msp/orderer/msp
+        # enabled TLS
+#      - ORDERER_GENERAL_TLS_ENABLED=true
+#      - ORDERER_GENERAL_TLS_PRIVATEKEY=/etc/hyperledger/msp/orderer/tls/server.key
+#      - ORDERER_GENERAL_TLS_CERTIFICATE=/etc/hyperledger/msp/orderer/tls/server.crt
+#      - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/msp/orderer/tls/ca.crt]
+#      - ORDERER_KAFKA_TOPIC_REPLICATIONFACTOR=1
+#      - ORDERER_KAFKA_VERBOSE=true
+#      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/etc/hyperledger/msp/orderer/tls/server.crt
+#      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/etc/hyperledger/msp/orderer/tls/server.key
+#      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/etc/hyperledger/msp/orderer/tls/ca.crt]
+    volumes:
+      - ./configtx/genesis.block:/etc/hyperledger/configtx/genesis.block
+      - ./crypto-config/ordererOrganizations/orderers/orderer./msp:/etc/hyperledger/msp/orderer/msp
+      - ./crypto-config/ordererOrganizations/orderers/orderer./tls:/etc/hyperledger/msp/orderer/tls
+      - ./var/orderer.flxdu.cn:/var/hyperledger/production/orderer
+    ports:
+      - "7050:7050"
+    command: orderer start
+    networks:
+      - byfn
+
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:2.4
+    tty: true
+    environment:
+      - GOPATH=/opt/gopath
+      - FABRIC_LOGGING_SPEC=DEBUG
+      - CORE_PEER_ID=cli
+      - CORE_CHAINCODE_KEEPALIVE=10
+    command: /bin/bash
+    volumes:
+      - ./chaincode/cc1:/opt/gopath/src/github.com/cc1
+      - ./chaincode/cc2:/opt/gopath/src/github.com/cc2
+      - ./crypto-config:/opt/crypto-config
+      - ./configtx:/opt/configtx
+    networks:
+      - byfn
+
+  peer0.org1.flxdu.cn:
+    container_name: peer0.org1.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer0.org1.flxdu.cn
+      - CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_CHAINCODELISTENADDRESS=peer0.org1.flxdu.cn:7052
+
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer0.org1.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer0.org1.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer0.org1.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7051:7051"
+      - "7053:7053"
+    networks:
+      - byfn
+
+  peer1.org1.flxdu.cn:
+    container_name: peer1.org1.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer1.org1.flxdu.cn
+      - CORE_PEER_ADDRESS=peer1.org1.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_CHAINCODELISTENADDRESS=peer1.org1.flxdu.cn:7052
+      
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org1.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer1.org1.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer1.org1.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer1.org1.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7061:7051"
+      - "7063:7053"
+    networks:
+      - byfn
+      
+  peer2.org1.flxdu.cn:
+    container_name: peer2.org1.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer2.org1.flxdu.cn
+      - CORE_PEER_ADDRESS=peer2.org1.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_CHAINCODELISTENADDRESS=peer2.org1.flxdu.cn:7052
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.org1.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer2.org1.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer2.org1.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer2.org1.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7071:7051"
+      - "7073:7053"
+    networks:
+      - byfn
+
+  peer3.org1.flxdu.cn:
+    container_name: peer3.org1.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer3.org1.flxdu.cn
+      - CORE_PEER_ADDRESS=peer3.org1.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_CHAINCODELISTENADDRESS=peer3.org1.flxdu.cn:7052
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3.org1.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer3.org1.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org1.flxdu.cn/peers/peer3.org1.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer3.org1.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7081:7051"
+      - "7083:7053"
+    networks:
+      - byfn
+
+  peer0.org2.flxdu.cn:
+    container_name: peer0.org2.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer0.org2.flxdu.cn
+      - CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org2MSP
+
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer0.org2.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer0.org2.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer0.org2.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7091:7051"
+      - "7093:7053"
+    networks:
+      - byfn
+
+  peer1.org2.flxdu.cn:
+    container_name: peer1.org2.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer1.org2.flxdu.cn
+      - CORE_PEER_ADDRESS=peer1.org2.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org2MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org2.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer1.org2.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer1.org2.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer1.org2.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7101:7051"
+      - "7103:7053"
+    networks:
+      - byfn
+
+  peer2.org2.flxdu.cn:
+    container_name: peer2.org2.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer2.org2.flxdu.cn
+      - CORE_PEER_ADDRESS=peer2.org2.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org2MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.org2.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer2.org2.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer2.org2.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer2.org2.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7111:7051"
+      - "7113:7053"
+    networks:
+      - byfn
+
+  peer3.org2.flxdu.cn:
+    container_name: peer3.org2.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer3.org2.flxdu.cn
+      - CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org2MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3.org2.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer3.org2.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org2.flxdu.cn/peers/peer3.org2.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer3.org2.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7121:7051"
+      - "7123:7053"
+    networks:
+      - byfn
+
+  peer0.org3.flxdu.cn:
+    container_name: peer0.org3.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer0.org3.flxdu.cn
+      - CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org3MSP
+
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org3.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer0.org3.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer0.org3.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer0.org3.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7131:7051"
+      - "7133:7053"
+    networks:
+      - byfn
+
+  peer1.org3.flxdu.cn:
+    container_name: peer1.org3.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer1.org3.flxdu.cn
+      - CORE_PEER_ADDRESS=peer1.org3.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org3MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org3.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org3.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer1.org3.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer1.org3.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer1.org3.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7141:7051"
+      - "7143:7053"
+    networks:
+      - byfn
+
+  peer2.org3.flxdu.cn:
+    container_name: peer2.org3.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer2.org3.flxdu.cn
+      - CORE_PEER_ADDRESS=peer2.org3.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org3MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org3.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.org3.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer2.org3.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer2.org3.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer2.org3.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7151:7051"
+      - "7153:7053"
+    networks:
+      - byfn
+
+  peer3.org3.flxdu.cn:
+    container_name: peer3.org3.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer3.org3.flxdu.cn
+      - CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org3MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org3.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3.org3.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer3.org3.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org3.flxdu.cn/peers/peer3.org3.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer3.org3.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7161:7051"
+      - "7163:7053"
+    networks:
+      - byfn
+
+  peer0.org4.flxdu.cn:
+    container_name: peer0.org4.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer0.org4.flxdu.cn
+      - CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org4MSP
+
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org4.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer0.org4.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer0.org4.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer0.org4.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7171:7051"
+      - "7173:7053"
+    networks:
+      - byfn
+
+  peer1.org4.flxdu.cn:
+    container_name: peer1.org4.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer1.org4.flxdu.cn
+      - CORE_PEER_ADDRESS=peer1.org4.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org4MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org4.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org4.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer1.org4.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer1.org4.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer1.org4.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7181:7051"
+      - "7183:7053"
+    networks:
+      - byfn
+
+  peer2.org4.flxdu.cn:
+    container_name: peer2.org4.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer2.org4.flxdu.cn
+      - CORE_PEER_ADDRESS=peer2.org4.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org4MSP
+      
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org4.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2.org4.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer2.org4.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer2.org4.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer2.org4.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7191:7051"
+      - "7193:7053"
+    networks:
+      - byfn
+
+  peer3.org4.flxdu.cn:
+    container_name: peer3.org4.flxdu.cn
+    image: hyperledger/fabric-peer:2.4
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${PROJECT_NAME}_byfn
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/peer/msp
+
+      - CORE_PEER_ID=peer3.org4.flxdu.cn
+      - CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051
+      - CORE_PEER_LOCALMSPID=Org4MSP
+
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org4.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer3.org4.flxdu.cn:7051
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer3.org4.flxdu.cn/msp:/etc/hyperledger/peer/msp
+      - ./crypto-config/peerOrganizations/org4.flxdu.cn/peers/peer3.org4.flxdu.cn/tls:/etc/hyperledger/peer/tls
+      - ./var/peer3.org4.flxdu.cn:/var/hyperledger/production
+    ports:
+      - "7201:7051"
+      - "7203:7053"
+    networks:
+      - byfn

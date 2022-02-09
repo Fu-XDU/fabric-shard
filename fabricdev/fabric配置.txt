@@ -1,0 +1,357 @@
+docker run --rm -v /Users/fuming/Downloads/fabricdev:/data hyperledger/fabric-tools:2.4 cryptogen generate --config=/data/crypto-config.yaml --output=/data/crypto-config
+
+mkdir -p /Users/fuming/Downloads/fabricdev/configtx
+
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile TwoOrgsOrdererGenesis -outputBlock /data/configtx/genesis.block -channelID hellodeploy
+
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputCreateChannelTx /data/configtx/hello1.tx -channelID hello1
+
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel2 -outputCreateChannelTx /data/configtx/hello2.tx -channelID hello2
+
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel3 -outputCreateChannelTx /data/configtx/hello3.tx -channelID hello3
+
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel4 -outputCreateChannelTx /data/configtx/hello4.tx -channelID hello4
+
+# Org1设置为hello1锚节点
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org1MSPanchors_hello1.tx -channelID hello1 -asOrg Org1MSP
+
+# Org2设置为hello1锚节点
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org2MSPanchors_hello1.tx -channelID hello1 -asOrg Org2MSP
+
+# Org3设置为hello1锚节点
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org3MSPanchors_hello1.tx -channelID hello1 -asOrg Org3MSP
+
+# Org4设置为hello1锚节点
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org4MSPanchors_hello1.tx -channelID hello1 -asOrg Org4MSP
+
+# Org2设置为hello2锚节点
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel2 -outputAnchorPeersUpdate /data/configtx/Org2MSPanchors_hello2.tx -channelID hello2 -asOrg Org2MSP
+
+# Org3设置为hello3锚节点
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel3 -outputAnchorPeersUpdate /data/configtx/Org3MSPanchors_hello3.tx -channelID hello3 -asOrg Org3MSP
+
+# Org4设置为hello4锚节点
+docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel4 -outputAnchorPeersUpdate /data/configtx/Org4MSPanchors_hello4.tx -channelID hello4 -asOrg Org4MSP
+
+# 启动网络
+PROJECT_NAME=fabricdev docker-compose -f /Users/fuming/Downloads/fabricdev/docker-compose.yaml up -d
+
+# 清空数据并重启网络
+docker-compose -f /Users/fuming/Downloads/fabricdev/docker-compose.yaml stop && rm -rf /Users/fuming/Downloads/fabricdev/var && docker-compose -f /Users/fuming/Downloads/fabricdev/docker-compose.yaml start
+
+# org1创建通道hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/hello1.tx
+
+# org2创建通道hello2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello2 -f /opt/configtx/hello2.tx
+
+# org3创建通道hello3
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello3 -f /opt/configtx/hello3.tx
+
+# org4创建通道hello4
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello4 -f /opt/configtx/hello4.tx
+
+docker exec cli mv /go/hello1.block /opt/configtx/
+docker exec cli mv /go/hello2.block /opt/configtx/
+docker exec cli mv /go/hello3.block /opt/configtx/
+docker exec cli mv /go/hello4.block /opt/configtx/
+
+# peer0.org1加入hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block
+
+# peer1.org1加入hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer1.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block
+
+# peer2.org1加入hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer2.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block
+
+# peer3.org1加入hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer3.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block
+
+# peer3.org2加入hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block
+
+# peer3.org3加入hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block
+
+# peer3.org4加入hello1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block
+
+# peer0.org2加入hello2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block
+
+# peer1.org2加入hello2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer1.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block
+
+# peer2.org2加入hello2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer2.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block
+
+# peer3.org2加入hello2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block
+
+# peer0.org3加入hello3
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block
+
+# peer1.org3加入hello3
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer1.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block
+
+# peer2.org3加入hello3
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer2.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block
+
+# peer3.org3加入hello3
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block
+
+# peer0.org4加入hello4
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block
+
+# peer1.org4加入hello4
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer1.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block
+
+# peer2.org4加入hello4
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer2.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block
+
+# peer3.org4加入hello4
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block
+
+# peer0.org1设置为hello1锚节点
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org1MSPanchors_hello1.tx
+
+# peer3.org2设置为hello1锚节点
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org2MSPanchors_hello1.tx
+
+# peer3.org3设置为hello1锚节点
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org3MSPanchors_hello1.tx
+
+# peer3.org4设置为hello1锚节点
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org4MSPanchors_hello1.tx
+
+# peer0.org2设置为hello2锚节点
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peero.org2.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello2 -f /opt/configtx/Org2MSPanchors_hello2.tx
+
+# peer0.org3设置为hello3锚节点
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello3 -f /opt/configtx/Org3MSPanchors_hello3.tx
+
+# peer0.org4设置为hello4锚节点
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello4 -f /opt/configtx/Org4MSPanchors_hello4.tx
+
+# peer0.org1安装链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+# package identifier: cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9
+
+# peer1.org1安装链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer1.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+
+# peer2.org1安装链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer2.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+
+# peer3.org1安装链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer3.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+
+# peer3.org2安装链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+
+# peer3.org3安装链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+
+# peer3.org4安装链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+
+# peer0.org1在hello1确定链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1
+
+# peer3.org2在hello1确定链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1
+
+# peer3.org3在hello1确定链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1
+
+# peer3.org4在hello1确定链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1
+
+# peer0.org2安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+# package identifier: cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb
+
+# peer1.org2安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer1.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer2.org2安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer2.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer3.org2安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer0.org3安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer1.org3安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer1.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer2.org3安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer2.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer3.org3安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer0.org4安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer1.org4安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer1.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer2.org4安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer2.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer3.org4安装链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# peer0.org2在hello2确定链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello2 --name cc1 --version 1.0 --init-required --package-id cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb --sequence 1
+
+# peer0.org3在hello3确定链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello3 --name cc1 --version 1.0 --init-required --package-id cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb --sequence 1
+
+# peer0.org4在hello4确定链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello4 --name cc1 --version 1.0 --init-required --package-id cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb --sequence 1
+
+# 查看hello1通道链码安装情况
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer lifecycle chaincode checkcommitreadiness --channelID hello1 --name cc2 --version 1.0 --init-required --sequence 1 --output json
+
+# 查看hello2通道链码安装情况
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer lifecycle chaincode checkcommitreadiness --channelID hello2 --name cc1 --version 1.0 --init-required --sequence 1 --output json
+
+# 查看hello3通道链码安装情况
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer lifecycle chaincode checkcommitreadiness --channelID hello3 --name cc1 --version 1.0 --init-required --sequence 1 --output json
+
+# 查看hello4通道链码安装情况
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer2.org4.flxdu.cn:7051 cli peer lifecycle chaincode checkcommitreadiness --channelID hello4 --name cc1 --version 1.0 --init-required --sequence 1 --output json
+
+# 提交hello1通道链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello1 --name cc2 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org1.flxdu.cn:7051 --peerAddresses peer1.org1.flxdu.cn:7051 --peerAddresses peer2.org1.flxdu.cn:7051 --peerAddresses peer3.org1.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051
+
+# 提交hello2通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello2 --name cc1 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051
+
+# 提交hello3通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello3 --name cc1 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org3.flxdu.cn:7051 --peerAddresses peer1.org3.flxdu.cn:7051 --peerAddresses peer2.org3.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051
+
+# 提交hello4通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello4 --name cc1 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org4.flxdu.cn:7051 --peerAddresses peer1.org4.flxdu.cn:7051 --peerAddresses peer2.org4.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051
+
+# 初始化hello1通道链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello1 -n cc2 --peerAddresses peer1.org1.flxdu.cn:7051 --peerAddresses peer2.org1.flxdu.cn:7051 --peerAddresses peer3.org1.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+# 初始化hello2通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello2 -n cc1 --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+# 初始化hello3通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello3 -n cc1 --peerAddresses peer0.org3.flxdu.cn:7051 --peerAddresses peer1.org3.flxdu.cn:7051 --peerAddresses peer2.org3.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+# 初始化hello4通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello4 -n cc1 --peerAddresses peer0.org4.flxdu.cn:7051 --peerAddresses peer1.org4.flxdu.cn:7051 --peerAddresses peer2.org4.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+
+
+
+
+
+
+
+
+# peer0.org2设置peer0.org2余额0xfff
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 -C hello2 -n cc1 --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 -c '{"Args":["setBalance", "peer0.org2", "0xffff"]}'
+
+# peer1.org2设置peer1.org2余额0xfff
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer1.org2.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 -C hello2 -n cc1 --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 -c '{"Args":["setBalance", "peer1.org2", "0xfff"]}'
+
+
+# peer0.org2向peer1.org2转0x111
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 -C hello2 -n cc1 --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 -c '{"Args":["transfer", "peer0.org2", "peer1.org2", "0x111"]}'
+
+# peer0.org2查询自己余额
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer chaincode query -C hello2 -n cc1 -c '{"Args":["getBalance", "peer0.org2"]}'
+
+# peer1.org2查询自己余额
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer1.org2.flxdu.cn:7051 cli peer chaincode query -C hello2 -n cc1 -c '{"Args":["getBalance", "peer1.org2"]}'
+
+# peer0.org3设置peer0.org3余额0xfff
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 -C hello3 -n cc1 --peerAddresses peer0.org3.flxdu.cn:7051 --peerAddresses peer1.org3.flxdu.cn:7051 --peerAddresses peer2.org3.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 -c '{"Args":["setBalance", "peer0.org3", "0xfff"]}'
+
+# peer0.org2请求向通道hello3的节点peer0.org3转账，请求答复
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer chaincode query -C hello2 -n cc1 -c '{"Args":["crossTransReq", "hello1", "hello1", "peer0.org2", "peer0.org3", "0x111", "this is payload"]}'
+
+
+# peer0.org2向通道hello3的节点peer0.org3转账0x111
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 -C hello2 -n cc1 --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 -c '{"Args":["pay",  "peer0.org2", "peer0.org3", "0x111"]}'
+
+# peer0.org3增加0x111
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 -C hello3 -n cc1 --peerAddresses peer0.org3.flxdu.cn:7051 --peerAddresses peer1.org3.flxdu.cn:7051 --peerAddresses peer2.org3.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 -c '{"Args":["add",  "peer0.org2", "peer0.org3", "0x111", "0xabcd"]}'
+
+# peer0.org3查询自己余额
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer chaincode query -C hello3 -n cc1 -c '{"Args":["getBalance", "peer0.org3"]}'
+
+####################################################################################################
+
+
+
+
+docker run --rm -v /Users/fuming/Downloads/fabricdev:/data hyperledger/fabric-tools:2.4 cryptogen generate --config=/data/crypto-config.yaml --output=/data/crypto-config && mkdir -p /Users/fuming/Downloads/fabricdev/configtx && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile TwoOrgsOrdererGenesis -outputBlock /data/configtx/genesis.block -channelID hellodeploy && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputCreateChannelTx /data/configtx/hello1.tx -channelID hello1 && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel2 -outputCreateChannelTx /data/configtx/hello2.tx -channelID hello2 && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel3 -outputCreateChannelTx /data/configtx/hello3.tx -channelID hello3 && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel4 -outputCreateChannelTx /data/configtx/hello4.tx -channelID hello4 && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org1MSPanchors_hello1.tx -channelID hello1 -asOrg Org1MSP && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org2MSPanchors_hello1.tx -channelID hello1 -asOrg Org2MSP && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org3MSPanchors_hello1.tx -channelID hello1 -asOrg Org3MSP && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel1 -outputAnchorPeersUpdate /data/configtx/Org4MSPanchors_hello1.tx -channelID hello1 -asOrg Org4MSP && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel2 -outputAnchorPeersUpdate /data/configtx/Org2MSPanchors_hello2.tx -channelID hello2 -asOrg Org2MSP && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel3 -outputAnchorPeersUpdate /data/configtx/Org3MSPanchors_hello3.tx -channelID hello3 -asOrg Org3MSP && docker run -v /Users/fuming/Downloads/fabricdev:/data -e FABRIC_CFG_PATH=/data --rm hyperledger/fabric-tools:2.4 configtxgen -profile Channel4 -outputAnchorPeersUpdate /data/configtx/Org4MSPanchors_hello4.tx -channelID hello4 -asOrg Org4MSP && PROJECT_NAME=fabricdev docker-compose -f /Users/fuming/Downloads/fabricdev/docker-compose.yaml up -d
+
+
+
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/hello1.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello2 -f /opt/configtx/hello2.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello3 -f /opt/configtx/hello3.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" cli peer channel create -o orderer.flxdu.cn:7050 -c hello4 -f /opt/configtx/hello4.tx && docker exec cli mv /go/hello1.block /opt/configtx/ && docker exec cli mv /go/hello2.block /opt/configtx/ && docker exec cli mv /go/hello3.block /opt/configtx/ && docker exec cli mv /go/hello4.block /opt/configtx/ && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer1.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer2.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer3.org1.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello1.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer1.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer2.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello2.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer1.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer2.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello3.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer1.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer2.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer channel join -b /opt/configtx/hello4.block && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org1MSPanchors_hello1.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org2MSPanchors_hello1.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org3MSPanchors_hello1.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello1 -f /opt/configtx/Org4MSPanchors_hello1.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peero.org2.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello2 -f /opt/configtx/Org2MSPanchors_hello2.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello3 -f /opt/configtx/Org3MSPanchors_hello3.tx && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer channel update -o orderer.flxdu.cn:7050 -c hello4 -f /opt/configtx/Org4MSPanchors_hello4.tx
+
+# 打包链码
+docker exec -it cli /bin/sh
+
+cd /opt/gopath/src/github.com/cc1 && go env -w GOPROXY=https://goproxy.cn,direct && go mod vendor && peer lifecycle chaincode package cc1.tar.gz --path ./ --label cc1_1 && exit
+
+cd /opt/gopath/src/github.com/cc2 && go env -w GOPROXY=https://goproxy.cn,direct && go mod vendor && peer lifecycle chaincode package cc2.tar.gz --path ./ --label cc2_1 && exit
+
+
+# 安装确定链码cc2
+# package identifier: cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer1.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer2.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer3.org1.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc2/cc2.tar.gz
+
+
+
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1 && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1 && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1 && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello1 --name cc2 --version 1.0 --init-required --package-id cc2_1:33836d6fa599434efcbd4f3c8cc38427ccd5bf4be1fa6368e4b3e8f5afe775b9 --sequence 1
+
+# 安装链码cc1
+# package identifier: cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer1.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer2.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer3.org2.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer1.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer2.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer3.org3.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer1.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer2.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer3.org4.flxdu.cn:7051 cli peer lifecycle chaincode install /opt/gopath/src/github.com/cc1/cc1.tar.gz
+
+# 确定链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello2 --name cc1 --version 1.0 --init-required --package-id cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb --sequence 1 && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello3 --name cc1 --version 1.0 --init-required --package-id cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb --sequence 1 && docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer lifecycle chaincode approveformyorg --channelID hello4 --name cc1 --version 1.0 --init-required --package-id cc1_1:5b5c6025dd804930dd2275d0ae122584e3fa60d7923537f95be03ca62f400adb --sequence 1
+
+
+# 提交hello1通道链码cc2,会创建容器
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello1 --name cc2 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org1.flxdu.cn:7051 --peerAddresses peer1.org1.flxdu.cn:7051 --peerAddresses peer2.org1.flxdu.cn:7051 --peerAddresses peer3.org1.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051
+
+# 提交hello2通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello2 --name cc1 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051
+
+# 提交hello3通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello3 --name cc1 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org3.flxdu.cn:7051 --peerAddresses peer1.org3.flxdu.cn:7051 --peerAddresses peer2.org3.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051
+
+# 提交hello4通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer lifecycle chaincode commit -o orderer.flxdu.cn:7050 --channelID hello4 --name cc1 --version 1.0 --sequence 1 --init-required --peerAddresses peer0.org4.flxdu.cn:7051 --peerAddresses peer1.org4.flxdu.cn:7051 --peerAddresses peer2.org4.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051
+
+# 初始化hello1通道链码cc2
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org1MSP" -e CORE_PEER_ADDRESS=peer0.org1.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello1 -n cc2 --peerAddresses peer1.org1.flxdu.cn:7051 --peerAddresses peer2.org1.flxdu.cn:7051 --peerAddresses peer3.org1.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+# 初始化hello2通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org2MSP" -e CORE_PEER_ADDRESS=peer0.org2.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello2 -n cc1 --peerAddresses peer0.org2.flxdu.cn:7051 --peerAddresses peer1.org2.flxdu.cn:7051 --peerAddresses peer2.org2.flxdu.cn:7051 --peerAddresses peer3.org2.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+# 初始化hello3通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org3MSP" -e CORE_PEER_ADDRESS=peer0.org3.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello3 -n cc1 --peerAddresses peer0.org3.flxdu.cn:7051 --peerAddresses peer1.org3.flxdu.cn:7051 --peerAddresses peer2.org3.flxdu.cn:7051 --peerAddresses peer3.org3.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+# 初始化hello4通道链码cc1
+docker exec -e CORE_PEER_MSPCONFIGPATH=/opt/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp -e CORE_PEER_LOCALMSPID="Org4MSP" -e CORE_PEER_ADDRESS=peer0.org4.flxdu.cn:7051 cli peer chaincode invoke -o orderer.flxdu.cn:7050 --isInit -C hello4 -n cc1 --peerAddresses peer0.org4.flxdu.cn:7051 --peerAddresses peer1.org4.flxdu.cn:7051 --peerAddresses peer2.org4.flxdu.cn:7051 --peerAddresses peer3.org4.flxdu.cn:7051 -c '{"Args":["hello", "world"]}'
+
+
+
+
+
+
+

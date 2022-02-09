@@ -1,0 +1,38 @@
+OrdererOrgs:
+  - Name: Orderer
+    Domin: flxdu.cn
+    Specs:
+      - Hostname: orderer
+
+PeerOrgs:
+  - Name: Org1
+    Domain: org1.flxdu.cn
+    EnableNodeOUs: true
+    Template:
+      Count: 4
+    Users:
+      Count: 1
+
+  - Name: Org2
+    Domain: org2.flxdu.cn
+    EnableNodeOUs: true
+    Template:
+      Count: 4
+    Users:
+      Count: 1
+
+  - Name: Org3
+    Domain: org3.flxdu.cn
+    EnableNodeOUs: true
+    Template:
+      Count: 4
+    Users:
+      Count: 1
+
+  - Name: Org4
+    Domain: org4.flxdu.cn
+    EnableNodeOUs: true
+    Template:
+      Count: 4
+    Users:
+      Count: 1

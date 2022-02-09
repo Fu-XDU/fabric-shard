@@ -1,0 +1,452 @@
+name: "fabric-sdk-app-network"
+
+version: 1.0.0
+
+client:
+  organization: Org1
+  logging:
+    level: info
+  cryptoconfig:
+    path: /Users/fuming/Downloads/fabricdev/crypto-config
+  credentialStore:
+    path: "/tmp/state-store"
+    cryptoStore:
+      path: /tmp/msp
+
+  BCCSP:
+    security:
+      enabled: true
+      default:
+        provider: "SW"
+      hashAlgorithm: "SHA2"
+      softVerify: true
+      level: 256
+
+  tlsCerts:
+    systemCertPool: true
+    client:
+      key:
+        path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/users/User1@org1.flxdu.cn/tls/client.key
+      cert:
+        path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/users/User1@org1.flxdu.cn/tls/client.crt
+
+peerPermission: &peerPermission
+  endorsingPeer: true
+  chaincodeQuery: true
+  ledgerQuery: true
+  eventSource: true
+
+channelPolicy: &channelPolicy
+  queryChannelConfig:
+    minResponses: 1
+    maxTargets: 1
+    retryOpts:
+      attempts: 5
+      initialBackoff: 500ms
+      maxBackoff: 5s
+      backoffFactor: 2.0
+
+grpcOptions: &grpcOptions
+  keep-alive-time: 0s
+  keep-alive-timeout: 20s
+  keep-alive-permit: false
+  fail-fast: false
+  allow-insecure: true
+
+channels:
+  hello1:
+    peers:
+      peer0.org1.flxdu.cn:
+        <<: *peerPermission
+        anchorpeer: true
+        txpath: /Users/fuming/Downloads/fabricdev/configtx/Org1MSPanchors_hello1.tx
+      peer1.org1.flxdu.cn:
+        <<: *peerPermission
+      peer2.org1.flxdu.cn:
+        <<: *peerPermission
+      peer3.org1.flxdu.cn:
+        <<: *peerPermission
+      peer3.org2.flxdu.cn:
+        <<: *peerPermission
+        anchorpeer: true
+        txpath: /Users/fuming/Downloads/fabricdev/configtx/Org2MSPanchors_hello1.tx
+      peer3.org3.flxdu.cn:
+        <<: *peerPermission
+        anchorpeer: true
+        txpath: /Users/fuming/Downloads/fabricdev/configtx/Org3MSPanchors_hello1.tx
+      peer3.org4.flxdu.cn:
+        <<: *peerPermission
+        anchorpeer: true
+        txpath: /Users/fuming/Downloads/fabricdev/configtx/Org4MSPanchors_hello1.tx
+    policies:
+      <<: *channelPolicy
+    configpath: /Users/fuming/Downloads/fabricdev/configtx/hello1.tx
+
+  hello2:
+    peers:
+      peer0.org2.flxdu.cn:
+        <<: *peerPermission
+        anchorpeer: true
+        txpath: /Users/fuming/Downloads/fabricdev/configtx/Org2MSPanchors_hello2.tx
+      peer1.org2.flxdu.cn:
+        <<: *peerPermission
+      peer2.org2.flxdu.cn:
+        <<: *peerPermission
+      peer3.org2.flxdu.cn:
+        <<: *peerPermission
+    policies:
+      <<: *channelPolicy
+    configpath: /Users/fuming/Downloads/fabricdev/configtx/hello2.tx
+
+  hello3:
+    peers:
+      peer0.org3.flxdu.cn:
+        <<: *peerPermission
+        anchorpeer: true
+        txpath: /Users/fuming/Downloads/fabricdev/configtx/Org3MSPanchors_hello3.tx
+      peer1.org3.flxdu.cn:
+        <<: *peerPermission
+      peer2.org3.flxdu.cn:
+        <<: *peerPermission
+      peer3.org3.flxdu.cn:
+        <<: *peerPermission
+    policies:
+      <<: *channelPolicy
+    configpath: /Users/fuming/Downloads/fabricdev/configtx/hello3.tx
+
+  hello4:
+    peers:
+      peer0.org4.flxdu.cn:
+        <<: *peerPermission
+        anchorpeer: true
+        txpath: /Users/fuming/Downloads/fabricdev/configtx/Org4MSPanchors_hello4.tx
+      peer1.org4.flxdu.cn:
+        <<: *peerPermission
+      peer2.org4.flxdu.cn:
+        <<: *peerPermission
+      peer3.org4.flxdu.cn:
+        <<: *peerPermission
+    policies:
+      <<: *channelPolicy
+    configpath: /Users/fuming/Downloads/fabricdev/configtx/hello4.tx
+
+organizations:
+  Org1:
+    mspID: Org1MSP
+    users:
+      User1:
+        cert:
+          path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/users/User1@org1.flxdu.cn/msp/cacerts/ca.org1.flxdu.cn-cert.pem
+    cryptoPath: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/users/Admin@org1.flxdu.cn/msp
+    peers:
+      - peer0.org1.flxdu.cn
+      - peer1.org1.flxdu.cn
+      - peer2.org1.flxdu.cn
+      - peer3.org1.flxdu.cn
+
+  Org2:
+    mspID: Org2MSP
+    users:
+      User1:
+        cert:
+          path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org2.flxdu.cn/users/User1@org2.flxdu.cn/msp/cacerts/ca.org2.flxdu.cn-cert.pem
+    cryptoPath: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org2.flxdu.cn/users/Admin@org2.flxdu.cn/msp
+    peers:
+      - peer0.org2.flxdu.cn
+      - peer1.org2.flxdu.cn
+      - peer2.org2.flxdu.cn
+      - peer3.org2.flxdu.cn
+
+  Org3:
+    mspID: Org3MSP
+    users:
+      User1:
+        cert:
+          path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org3.flxdu.cn/users/User1@org3.flxdu.cn/msp/cacerts/ca.org3.flxdu.cn-cert.pem
+    cryptoPath: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org3.flxdu.cn/users/Admin@org3.flxdu.cn/msp
+    peers:
+      - peer0.org3.flxdu.cn
+      - peer1.org3.flxdu.cn
+      - peer2.org3.flxdu.cn
+      - peer3.org3.flxdu.cn
+
+  Org4:
+    mspID: Org4MSP
+    users:
+      User1:
+        cert:
+          path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org4.flxdu.cn/users/User1@org4.flxdu.cn/msp/cacerts/ca.org4.flxdu.cn-cert.pem
+    cryptoPath: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org4.flxdu.cn/users/Admin@org4.flxdu.cn/msp
+    peers:
+      - peer0.org4.flxdu.cn
+      - peer1.org4.flxdu.cn
+      - peer2.org4.flxdu.cn
+      - peer3.org4.flxdu.cn
+
+  ordererorg:
+    mspID: OrdererMSP
+    users:
+      Admin:
+        cert:
+          path: /Users/fuming/Downloads/fabricdev/crypto-config/ordererOrganizations/users/Admin@/msp/cacerts/ca.-cert.pem
+    cryptoPath: /Users/fuming/Downloads/fabricdev/crypto-config/ordererOrganizations/users/Admin@/msp
+
+orderers:
+  orderer.flxdu.cn:
+    url: localhost:7050
+    grpcOptions:
+      ssl-target-name-override: orderer.flxdu.cn
+      hostnameOverride: orderer.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/ordererOrganizations/tlsca/tlsca.-cert.pem
+
+peers:
+  peer0.org1.flxdu.cn:
+    url: localhost:7051
+    eventUrl: localhost:7053
+    grpcOptions:
+      ssl-target-name-override: peer0.org1.flxdu.cn
+      hostnameOverride: peer0.org1.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/tlsca/tlsca.org1.flxdu.cn-cert.pem
+
+  peer1.org1.flxdu.cn:
+    url: localhost:7061
+    eventUrl: localhost:7063
+    grpcOptions:
+      ssl-target-name-override: peer1.org1.flxdu.cn
+      hostnameOverride: peer1.org1.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/tlsca/tlsca.org1.flxdu.cn-cert.pem
+
+  peer2.org1.flxdu.cn:
+    url: localhost:7071
+    eventUrl: localhost:7073
+    grpcOptions:
+      ssl-target-name-override: peer2.org1.flxdu.cn
+      hostnameOverride: peer2.org1.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/tlsca/tlsca.org1.flxdu.cn-cert.pem
+
+  peer3.org1.flxdu.cn:
+    url: localhost:7081
+    eventUrl: localhost:7083
+    grpcOptions:
+      ssl-target-name-override: peer3.org1.flxdu.cn
+      hostnameOverride: peer3.org1.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org1.flxdu.cn/tlsca/tlsca.org1.flxdu.cn-cert.pem
+
+  peer0.org2.flxdu.cn:
+    url: localhost:7091
+    eventUrl: localhost:7093
+    grpcOptions:
+      ssl-target-name-override: peer0.org2.flxdu.cn
+      hostnameOverride: peer0.org2.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org2.flxdu.cn/tlsca/tlsca.org2.flxdu.cn-cert.pem
+
+  peer1.org2.flxdu.cn:
+    url: localhost:7101
+    eventUrl: localhost:7103
+    grpcOptions:
+      ssl-target-name-override: peer1.org2.flxdu.cn
+      hostnameOverride: peer1.org2.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org2.flxdu.cn/tlsca/tlsca.org2.flxdu.cn-cert.pem
+
+  peer2.org2.flxdu.cn:
+    url: localhost:7111
+    eventUrl: localhost:7113
+    grpcOptions:
+      ssl-target-name-override: peer2.org2.flxdu.cn
+      hostnameOverride: peer2.org2.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org2.flxdu.cn/tlsca/tlsca.org2.flxdu.cn-cert.pem
+
+  peer3.org2.flxdu.cn:
+    url: localhost:7121
+    eventUrl: localhost:7123
+    grpcOptions:
+      ssl-target-name-override: peer3.org2.flxdu.cn
+      hostnameOverride: peer3.org2.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org2.flxdu.cn/tlsca/tlsca.org2.flxdu.cn-cert.pem
+
+  peer0.org3.flxdu.cn:
+    url: localhost:7131
+    eventUrl: localhost:7133
+    grpcOptions:
+      ssl-target-name-override: peer0.org3.flxdu.cn
+      hostnameOverride: peer0.org3.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org3.flxdu.cn/tlsca/tlsca.org3.flxdu.cn-cert.pem
+
+  peer1.org3.flxdu.cn:
+    url: localhost:7141
+    eventUrl: localhost:7143
+    grpcOptions:
+      ssl-target-name-override: peer1.org3.flxdu.cn
+      hostnameOverride: peer1.org3.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org3.flxdu.cn/tlsca/tlsca.org3.flxdu.cn-cert.pem
+
+  peer2.org3.flxdu.cn:
+    url: localhost:7151
+    eventUrl: localhost:7153
+    grpcOptions:
+      ssl-target-name-override: peer2.org3.flxdu.cn
+      hostnameOverride: peer2.org3.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org3.flxdu.cn/tlsca/tlsca.org3.flxdu.cn-cert.pem
+
+  peer3.org3.flxdu.cn:
+    url: localhost:7161
+    eventUrl: localhost:7163
+    grpcOptions:
+      ssl-target-name-override: peer3.org3.flxdu.cn
+      hostnameOverride: peer3.org3.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org3.flxdu.cn/tlsca/tlsca.org3.flxdu.cn-cert.pem
+
+  peer0.org4.flxdu.cn:
+    url: localhost:7171
+    eventUrl: localhost:7173
+    grpcOptions:
+      ssl-target-name-override: peer0.org4.flxdu.cn
+      hostnameOverride: peer0.org4.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org4.flxdu.cn/tlsca/tlsca.org4.flxdu.cn-cert.pem
+
+  peer1.org4.flxdu.cn:
+    url: localhost:7181
+    eventUrl: localhost:7183
+    grpcOptions:
+      ssl-target-name-override: peer1.org4.flxdu.cn
+      hostnameOverride: peer1.org4.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org4.flxdu.cn/tlsca/tlsca.org4.flxdu.cn-cert.pem
+
+  peer2.org4.flxdu.cn:
+    url: localhost:7191
+    eventUrl: localhost:7193
+    grpcOptions:
+      ssl-target-name-override: peer2.org4.flxdu.cn
+      hostnameOverride: peer2.org4.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org4.flxdu.cn/tlsca/tlsca.org4.flxdu.cn-cert.pem
+
+  peer3.org4.flxdu.cn:
+    url: localhost:7201
+    eventUrl: localhost:7203
+    grpcOptions:
+      ssl-target-name-override: peer3.org4.flxdu.cn
+      hostnameOverride: peer3.org4.flxdu.cn
+      <<: *grpcOptions
+    tlsCACerts:
+      path: /Users/fuming/Downloads/fabricdev/crypto-config/peerOrganizations/org4.flxdu.cn/tlsca/tlsca.org4.flxdu.cn-cert.pem
+
+
+entityMatchers:
+  orderer:
+    - pattern: orderer.flxdu.cn:(\d+)
+      urlSubstitutionExp: orderer.flxdu.cn:${1}
+      sslTargetOverrideUrlSubstitutionExp: orderer.flxdu.cn
+      mappedHost: orderer.flxdu.cn
+
+  peer:
+    - pattern: (\w+).org1.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org1.flxdu.cn:7051
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org1.flxdu.cn
+      mappedHost: peer0.org1.flxdu.cn
+
+    - pattern: (\w+).org1.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org1.flxdu.cn:7061
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org1.flxdu.cn
+      mappedHost: peer1.org1.flxdu.cn
+
+    - pattern: (\w+).org1.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org1.flxdu.cn:7071
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org1.flxdu.cn
+      mappedHost: peer2.org1.flxdu.cn
+
+    - pattern: (\w+).org1.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org1.flxdu.cn:7081
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org1.flxdu.cn
+      mappedHost: peer3.org1.flxdu.cn
+
+    - pattern: (\w+).org2.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org2.flxdu.cn:7091
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org2.flxdu.cn
+      mappedHost: peer0.org2.flxdu.cn
+
+    - pattern: (\w+).org2.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org2.flxdu.cn:7101
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org2.flxdu.cn
+      mappedHost: peer1.org2.flxdu.cn
+
+    - pattern: (\w+).org2.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org2.flxdu.cn:7111
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org2.flxdu.cn
+      mappedHost: peer2.org2.flxdu.cn
+
+    - pattern: (\w+).org2.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org2.flxdu.cn:7121
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org2.flxdu.cn
+      mappedHost: peer3.org2.flxdu.cn
+
+    - pattern: (\w+).org3.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org3.flxdu.cn:7131
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org3.flxdu.cn
+      mappedHost: peer0.org3.flxdu.cn
+
+    - pattern: (\w+).org3.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org3.flxdu.cn:7141
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org3.flxdu.cn
+      mappedHost: peer1.org3.flxdu.cn
+
+    - pattern: (\w+).org3.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org3.flxdu.cn:7151
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org3.flxdu.cn
+      mappedHost: peer2.org3.flxdu.cn
+
+    - pattern: (\w+).org3.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org3.flxdu.cn:7161
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org3.flxdu.cn
+      mappedHost: peer3.org3.flxdu.cn
+
+    - pattern: (\w+).org4.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org4.flxdu.cn:7171
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org4.flxdu.cn
+      mappedHost: peer0.org4.flxdu.cn
+
+    - pattern: (\w+).org4.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org4.flxdu.cn:7181
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org4.flxdu.cn
+      mappedHost: peer1.org4.flxdu.cn
+
+    - pattern: (\w+).org4.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org4.flxdu.cn:7191
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org4.flxdu.cn
+      mappedHost: peer2.org4.flxdu.cn
+
+    - pattern: (\w+).org4.flxdu.cn:(\d+)
+      urlSubstitutionExp: ${1}.org4.flxdu.cn:7201
+      sslTargetOverrideUrlSubstitutionExp: ${1}.org4.flxdu.cn
+      mappedHost: peer3.org4.flxdu.cn
