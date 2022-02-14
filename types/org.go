@@ -18,6 +18,7 @@ type Org struct {
 	ResMgmt            *resmgmt.Client
 	MspClient          *mspclient.Client
 	Peers              []*Peer
+	Cache              map[string]*channel.Client
 }
 
 func NewOrg(name string, adminUser string) (o *Org) {
@@ -28,6 +29,7 @@ func NewOrg(name string, adminUser string) (o *Org) {
 		ResMgmt:            nil,
 		MspClient:          nil,
 		Peers:              []*Peer{},
+		Cache:              map[string]*channel.Client{},
 	}
 	return
 }
@@ -93,9 +95,13 @@ func (o *Org) LookupPeer(hostname string) (peer *Peer) {
 }
 
 func (o *Org) ChannelClient(sdk *fabsdk.FabricSDK, channelID string) (client *channel.Client, err error) {
+	if c, ok := o.Cache[channelID]; ok {
+		return c, nil
+	}
 	// Prepare channel client context using client context
 	clientChannelContext := sdk.ChannelContext(channelID, fabsdk.WithUser(o.AdminUser), fabsdk.WithOrg(o.Name))
 	// Channel client is used to query and execute transactions
 	client, err = channel.New(clientChannelContext)
+	o.Cache[channelID] = client
 	return
 }

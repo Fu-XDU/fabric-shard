@@ -72,42 +72,137 @@ func main() {
 }
 
 func ccTest() (err error) {
-	_, err = executeCC(appCtx.org[1], chaincodes[1], "setBalance", [][]byte{[]byte("peer0.org2"), []byte("0xffff")})
+	/*
+
+		cmd.ExecuteCC(2, appCtx.org[1].Peers[0], chaincodes[1], [][]byte{[]byte("setBalance"), []byte(appCtx.org[1].Peers[0].Name), []byte("0xffff")})
+		cmd.ExecuteCC(2, appCtx.org[1].Peers[1], chaincodes[1], [][]byte{[]byte("setBalance"), []byte(appCtx.org[1].Peers[1].Name), []byte("0xffff")})
+		cmd.ExecuteCC(3, appCtx.org[2].Peers[0], chaincodes[2], [][]byte{[]byte("setBalance"), []byte(appCtx.org[2].Peers[0].Name), []byte("0xffff")})
+		cmd.ExecuteCC(3, appCtx.org[2].Peers[1], chaincodes[2], [][]byte{[]byte("setBalance"), []byte(appCtx.org[2].Peers[1].Name), []byte("0xffff")})*/
+	_, err = executeCC(appCtx.org[1], chaincodes[1], "setBalance", [][]byte{[]byte("peer0.org2.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[1].Peers[0].Peer})
 	if err != nil {
 		return
 	}
-	_, err = executeCC(appCtx.org[1], chaincodes[1], "setBalance", [][]byte{[]byte("peer1.org2"), []byte("0xffff")})
+	_, err = executeCC(appCtx.org[1], chaincodes[1], "setBalance", [][]byte{[]byte("peer1.org2.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[1].Peers[1].Peer})
 	if err != nil {
 		return
 	}
-	var pend sync.WaitGroup
-	for i := 0; i < 50; i++ {
-		pend.Add(2)
-		go func() {
-			_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer0.org2"), []byte("peer1.org2"), []byte("0xf")})
-			if err != nil {
-				log.Println(err)
-			}
-			pend.Done()
-			return
-		}()
-		go func() {
-			_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer1.org2"), []byte("peer0.org2"), []byte("0xe")})
-			if err != nil {
-				log.Println(err)
-			}
-			pend.Done()
-			return
-		}()
+	_, err = executeCC(appCtx.org[2], chaincodes[2], "setBalance", [][]byte{[]byte("peer0.org3.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[2].Peers[0].Peer})
+	if err != nil {
+		return
 	}
-	pend.Wait()
+	_, err = executeCC(appCtx.org[2], chaincodes[2], "setBalance", [][]byte{[]byte("peer1.org3.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[2].Peers[1].Peer})
+	if err != nil {
+		return
+	}
+	_, err = executeCC(appCtx.org[3], chaincodes[3], "setBalance", [][]byte{[]byte("peer0.org4.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[3].Peers[0].Peer})
+	if err != nil {
+		return
+	}
+	_, err = executeCC(appCtx.org[3], chaincodes[3], "setBalance", [][]byte{[]byte("peer1.org4.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[3].Peers[1].Peer})
+	if err != nil {
+		return
+	}
+	txCounts := 0
+	now := time.Now().UnixNano()
+	for n := 0; n < 1; n++ {
+		var pend sync.WaitGroup
+		for i := 0; i < 150; i++ {
+			txCounts += 2
+			pend.Add(2)
+			go func() {
+				defer pend.Done()
+				_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer0.org2.flxdu.cn"), []byte("peer1.org2.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[1].Peers[0].Peer})
+				if err != nil {
+					log.Println(err)
+				}
+				return
+			}()
+			go func() {
+				defer pend.Done()
+				_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer1.org2.flxdu.cn"), []byte("peer0.org2.flxdu.cn"), []byte("0xe")}, []fab.Peer{*appCtx.org[1].Peers[1].Peer})
+				if err != nil {
+					log.Println(err)
+				}
+				return
+			}()
+			/*
+				go func() {
+					defer pend.Done()
+					_, err = executeCC(appCtx.org[2], chaincodes[2], "transfer", [][]byte{[]byte("peer0.org3.flxdu.cn"), []byte("peer1.org3.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[2].Peers[0].Peer})
+					if err != nil {
+						log.Println(err)
+					}
+					return
+				}()
+				go func() {
+					defer pend.Done()
+					_, err = executeCC(appCtx.org[2], chaincodes[2], "transfer", [][]byte{[]byte("peer1.org3.flxdu.cn"), []byte("peer0.org3.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[2].Peers[1].Peer})
+					if err != nil {
+						log.Println(err)
+					}
+					return
+				}()
+				go func() {
+					defer pend.Done()
+					_, err = executeCC(appCtx.org[3], chaincodes[3], "transfer", [][]byte{[]byte("peer0.org4.flxdu.cn"), []byte("peer1.org4.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[3].Peers[0].Peer})
+					if err != nil {
+						log.Println(err)
+					}
+					return
+				}()
+				go func() {
+					defer pend.Done()
+					_, err = executeCC(appCtx.org[3], chaincodes[3], "transfer", [][]byte{[]byte("peer1.org4.flxdu.cn"), []byte("peer0.org4.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[3].Peers[1].Peer})
+					if err != nil {
+						log.Println(err)
+					}
+					return
+				}()*/
+		}
+		pend.Wait()
+	}
+	offset := time.Now().UnixNano() - now
+	fmt.Println(offset)
+	/*
+		for i := 0; i < 500; i++ {
+			_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer0.org2.flxdu.cn"), []byte("peer1.org2.flxdu.cn"), []byte("0xf")})
+			if err != nil {
+				log.Println(err)
+			}
+			time.Sleep(10 * time.Nanosecond)
+			_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer1.org2.flxdu.cn"), []byte("peer0.org2.flxdu.cn"), []byte("0xe")})
+			if err != nil {
+				log.Println(err)
+			}
+			time.Sleep(10 * time.Nanosecond)
+		}*/
 	log.Println("Done!")
-	resp, err := queryCC(appCtx.org[1], chaincodes[1], "getBalance", [][]byte{[]byte("peer0.org2")})
+	resp, err := queryCC(appCtx.org[1], chaincodes[1], "getBalance", [][]byte{[]byte("peer0.org2.flxdu.cn")})
 	if err != nil {
 		return
 	}
 	log.Println(string(resp.Payload))
-	resp, err = queryCC(appCtx.org[1], chaincodes[1], "getBalance", [][]byte{[]byte("peer1.org2")})
+	resp, err = queryCC(appCtx.org[1], chaincodes[1], "getBalance", [][]byte{[]byte("peer1.org2.flxdu.cn")})
+	if err != nil {
+		return
+	}
+	log.Println(string(resp.Payload))
+	resp, err = queryCC(appCtx.org[2], chaincodes[2], "getBalance", [][]byte{[]byte("peer0.org3.flxdu.cn")})
+	if err != nil {
+		return
+	}
+	log.Println(string(resp.Payload))
+	resp, err = queryCC(appCtx.org[2], chaincodes[2], "getBalance", [][]byte{[]byte("peer1.org3.flxdu.cn")})
+	if err != nil {
+		return
+	}
+	log.Println(string(resp.Payload))
+	resp, err = queryCC(appCtx.org[3], chaincodes[3], "getBalance", [][]byte{[]byte("peer0.org4.flxdu.cn")})
+	if err != nil {
+		return
+	}
+	log.Println(string(resp.Payload))
+	resp, err = queryCC(appCtx.org[3], chaincodes[3], "getBalance", [][]byte{[]byte("peer1.org4.flxdu.cn")})
 	if err != nil {
 		return
 	}
@@ -115,12 +210,12 @@ func ccTest() (err error) {
 	return
 }
 
-func executeCC(org *types.Org, cc *types.Chaincode, fcn string, args [][]byte) (resp channel.Response, err error) {
+func executeCC(org *types.Org, cc *types.Chaincode, fcn string, args [][]byte, peers []fab.Peer) (resp channel.Response, err error) {
 	client, err := org.ChannelClient(sdk, cc.ChannelID)
 	if err != nil {
 		return
 	}
-	resp, err = client.Execute(channel.Request{ChaincodeID: cc.Name, Fcn: fcn, Args: args}, channel.WithRetry(retry.DefaultChannelOpts))
+	resp, err = client.Execute(channel.Request{ChaincodeID: cc.Name, Fcn: fcn, Args: args}, channel.WithTargets(peers...), channel.WithRetry(retry.DefaultChannelOpts), channel.WithTimeout(fab.Execute, 3*time.Second))
 	if err != nil {
 		return
 	}
