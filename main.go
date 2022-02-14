@@ -27,11 +27,22 @@ import (
 
 const (
 	ordererEndpoint = "orderer.flxdu.cn"
-	configPath      = "./config.yaml"
+	configPath      = "/Users/fuming/Downloads/fabricdev2/org1/sdk-config.yaml"
 	goPath          = "/Users/fuming/go"
 
 	period = 2 * time.Second
+	nano   = float64(1000000000)
 )
+
+type bench struct {
+	ordererEndpoint  string
+	configPath       string
+	sdk              *fabsdk.FabricSDK
+	appCtx           *AppContext
+	channelBeCreated map[string]struct{}
+	orgs             [][]string
+	chaincodes       []*types.Chaincode
+}
 
 var (
 	// SDK
@@ -40,78 +51,102 @@ var (
 
 	channelBeCreated = map[string]struct{}{}
 
-	orgs = [][]string{{"Org1", "Admin"}, {"Org2", "Admin"}, {"Org3", "Admin"}, {"Org4", "Admin"}}
+	orgs = [][]string{{"Org1", "Admin"}}
 
 	chaincodes = []*types.Chaincode{
-		types.NewChaincode("cc2", "1.0", "hello1", goPath, "cc2", types.LIFECYCLE),
-		types.NewChaincode("cc1", "1.0", "hello2", goPath, "cc1", types.LIFECYCLE),
-		types.NewChaincode("cc1", "1.0", "hello3", goPath, "cc1", types.LIFECYCLE),
-		types.NewChaincode("cc1", "1.0", "hello4", goPath, "cc1", types.LIFECYCLE),
+		types.NewChaincode("cc1", "1.0", "hello", goPath, "cc1", types.LIFECYCLE),
 	}
 )
 
-func main() {
-	err := setupSDK()
+func NewBench(configPath string, ordererEndpoint string, orgName string) *bench {
+	return &bench{
+		ordererEndpoint:  ordererEndpoint,
+		configPath:       configPath,
+		sdk:              nil,
+		appCtx:           nil,
+		channelBeCreated: map[string]struct{}{},
+		orgs:             [][]string{{orgName, "Admin"}},
+		chaincodes: []*types.Chaincode{
+			types.NewChaincode("cc1", "1.0", "hello", goPath, "cc1", types.LIFECYCLE),
+		},
+	}
+}
+func (b *bench) setup() {
+	err := b.setupSDK()
 	if err != nil {
 		log.Fatal(fmt.Sprintf("unable to setupNetwork SDK [%s]", err))
 	}
-	/*
-		err = setupNetwork()
-		if err != nil {
-			log.Fatal(fmt.Sprintf("unable to setup fabric network [%s]", err))
-		}
-	*/
 	defer teardown()
-	utils.CleanupUserData(sdk)
-	defer utils.CleanupUserData(sdk)
-	err = ccTest()
+	//utils.CleanupUserData(sdk)
+	//defer utils.CleanupUserData(sdk)
+	_, err = b.executeCC(b.appCtx.org[0], b.chaincodes[0], "setBalance", [][]byte{[]byte("peer0.org1.flxdu.cn"), []byte("0xffff")})
 	if err != nil {
-		log.Fatal(fmt.Sprintf("ccTest error [%s]", err))
+		return
 	}
-	os.Exit(0)
+	_, err = b.executeCC(b.appCtx.org[0], b.chaincodes[0], "setBalance", [][]byte{[]byte("peer1.org1.flxdu.cn"), []byte("0xffff")})
+	if err != nil {
+		return
+	}
 }
 
-func ccTest() (err error) {
-	/*
-
-		cmd.ExecuteCC(2, appCtx.org[1].Peers[0], chaincodes[1], [][]byte{[]byte("setBalance"), []byte(appCtx.org[1].Peers[0].Name), []byte("0xffff")})
-		cmd.ExecuteCC(2, appCtx.org[1].Peers[1], chaincodes[1], [][]byte{[]byte("setBalance"), []byte(appCtx.org[1].Peers[1].Name), []byte("0xffff")})
-		cmd.ExecuteCC(3, appCtx.org[2].Peers[0], chaincodes[2], [][]byte{[]byte("setBalance"), []byte(appCtx.org[2].Peers[0].Name), []byte("0xffff")})
-		cmd.ExecuteCC(3, appCtx.org[2].Peers[1], chaincodes[2], [][]byte{[]byte("setBalance"), []byte(appCtx.org[2].Peers[1].Name), []byte("0xffff")})*/
-	_, err = executeCC(appCtx.org[1], chaincodes[1], "setBalance", [][]byte{[]byte("peer0.org2.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[1].Peers[0].Peer})
-	if err != nil {
-		return
-	}
-	_, err = executeCC(appCtx.org[1], chaincodes[1], "setBalance", [][]byte{[]byte("peer1.org2.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[1].Peers[1].Peer})
-	if err != nil {
-		return
-	}
-	_, err = executeCC(appCtx.org[2], chaincodes[2], "setBalance", [][]byte{[]byte("peer0.org3.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[2].Peers[0].Peer})
-	if err != nil {
-		return
-	}
-	_, err = executeCC(appCtx.org[2], chaincodes[2], "setBalance", [][]byte{[]byte("peer1.org3.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[2].Peers[1].Peer})
-	if err != nil {
-		return
-	}
-	_, err = executeCC(appCtx.org[3], chaincodes[3], "setBalance", [][]byte{[]byte("peer0.org4.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[3].Peers[0].Peer})
-	if err != nil {
-		return
-	}
-	_, err = executeCC(appCtx.org[3], chaincodes[3], "setBalance", [][]byte{[]byte("peer1.org4.flxdu.cn"), []byte("0xffff")}, []fab.Peer{*appCtx.org[3].Peers[1].Peer})
-	if err != nil {
-		return
-	}
-	txCounts := 0
+func main() {
+	b1 := NewBench("/Users/fuming/Downloads/fabricdev2/org1/sdk-config.yaml", "orderer.flxdu.cn", "org1")
+	b1.setup()
+	b2 := NewBench("/Users/fuming/Downloads/fabricdev2/org2/sdk-config.yaml", "orderer.flxdu2.cn", "org2")
+	b2.setup()
+	b3 := NewBench("/Users/fuming/Downloads/fabricdev2/org3/sdk-config.yaml", "orderer.flxdu3.cn", "org3")
+	b3.setup()
+	b4 := NewBench("/Users/fuming/Downloads/fabricdev2/org4/sdk-config.yaml", "orderer.flxdu4.cn", "org4")
+	b4.setup()
+	var pend sync.WaitGroup
+	pend.Add(4)
+	count := 0
 	now := time.Now().UnixNano()
+	go func() {
+		defer pend.Done()
+		c, _ := b1.ccTest()
+		count += c
+	}()
+	go func() {
+		defer pend.Done()
+		c, _ := b2.ccTest()
+		count += c
+	}()
+	go func() {
+		defer pend.Done()
+		c, _ := b3.ccTest()
+		count += c
+	}()
+	go func() {
+		defer pend.Done()
+		c, _ := b4.ccTest()
+		count += c
+	}()
+	pend.Wait()
+	offset := time.Now().UnixNano() - now
+	fmt.Println("tps: ", float64(count)/(float64(offset)/nano))
+	os.Exit(0)
+	/*
+		b1 := NewBench("/Users/fuming/Downloads/fabricdev2/org1/sdk-config.yaml", "orderer.flxdu.cn", "org1")
+		b1.setup()
+		now := time.Now().UnixNano()
+		c, _ := b1.ccTest()
+		offset := time.Now().UnixNano() - now
+		fmt.Println("tps: ", float64(c)/(float64(offset)/nano))
+		os.Exit(0)*/
+}
+
+func (b *bench) ccTest() (txCounts int, err error) {
+	txCounts = 0
+	//now := time.Now().UnixNano()
 	for n := 0; n < 1; n++ {
 		var pend sync.WaitGroup
-		for i := 0; i < 150; i++ {
+		for i := 0; i < 50; i++ {
 			txCounts += 2
 			pend.Add(2)
 			go func() {
 				defer pend.Done()
-				_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer0.org2.flxdu.cn"), []byte("peer1.org2.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[1].Peers[0].Peer})
+				_, err = b.executeCC(b.appCtx.org[0], b.chaincodes[0], "transfer", [][]byte{[]byte("peer0.org1.flxdu.cn"), []byte("peer1.org1.flxdu.cn"), []byte("0xf")})
 				if err != nil {
 					log.Println(err)
 				}
@@ -119,103 +154,39 @@ func ccTest() (err error) {
 			}()
 			go func() {
 				defer pend.Done()
-				_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer1.org2.flxdu.cn"), []byte("peer0.org2.flxdu.cn"), []byte("0xe")}, []fab.Peer{*appCtx.org[1].Peers[1].Peer})
+				_, err = b.executeCC(b.appCtx.org[0], b.chaincodes[0], "transfer", [][]byte{[]byte("peer1.org1.flxdu.cn"), []byte("peer0.org1.flxdu.cn"), []byte("0xe")})
 				if err != nil {
 					log.Println(err)
 				}
 				return
 			}()
-			/*
-				go func() {
-					defer pend.Done()
-					_, err = executeCC(appCtx.org[2], chaincodes[2], "transfer", [][]byte{[]byte("peer0.org3.flxdu.cn"), []byte("peer1.org3.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[2].Peers[0].Peer})
-					if err != nil {
-						log.Println(err)
-					}
-					return
-				}()
-				go func() {
-					defer pend.Done()
-					_, err = executeCC(appCtx.org[2], chaincodes[2], "transfer", [][]byte{[]byte("peer1.org3.flxdu.cn"), []byte("peer0.org3.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[2].Peers[1].Peer})
-					if err != nil {
-						log.Println(err)
-					}
-					return
-				}()
-				go func() {
-					defer pend.Done()
-					_, err = executeCC(appCtx.org[3], chaincodes[3], "transfer", [][]byte{[]byte("peer0.org4.flxdu.cn"), []byte("peer1.org4.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[3].Peers[0].Peer})
-					if err != nil {
-						log.Println(err)
-					}
-					return
-				}()
-				go func() {
-					defer pend.Done()
-					_, err = executeCC(appCtx.org[3], chaincodes[3], "transfer", [][]byte{[]byte("peer1.org4.flxdu.cn"), []byte("peer0.org4.flxdu.cn"), []byte("0xf")}, []fab.Peer{*appCtx.org[3].Peers[1].Peer})
-					if err != nil {
-						log.Println(err)
-					}
-					return
-				}()*/
 		}
 		pend.Wait()
 	}
-	offset := time.Now().UnixNano() - now
-	fmt.Println(offset)
-	/*
-		for i := 0; i < 500; i++ {
-			_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer0.org2.flxdu.cn"), []byte("peer1.org2.flxdu.cn"), []byte("0xf")})
-			if err != nil {
-				log.Println(err)
-			}
-			time.Sleep(10 * time.Nanosecond)
-			_, err = executeCC(appCtx.org[1], chaincodes[1], "transfer", [][]byte{[]byte("peer1.org2.flxdu.cn"), []byte("peer0.org2.flxdu.cn"), []byte("0xe")})
-			if err != nil {
-				log.Println(err)
-			}
-			time.Sleep(10 * time.Nanosecond)
-		}*/
+	return
+	/*offset := time.Now().UnixNano() - now
+
+	fmt.Println("tps: ", float64(txCounts)/(float64(offset)/nano))
 	log.Println("Done!")
-	resp, err := queryCC(appCtx.org[1], chaincodes[1], "getBalance", [][]byte{[]byte("peer0.org2.flxdu.cn")})
+	resp, err := queryCC(b.appCtx.org[0], b.chaincodes[0], "getBalance", [][]byte{[]byte("peer0.org1.flxdu.cn")})
 	if err != nil {
 		return
 	}
 	log.Println(string(resp.Payload))
-	resp, err = queryCC(appCtx.org[1], chaincodes[1], "getBalance", [][]byte{[]byte("peer1.org2.flxdu.cn")})
+	resp, err = queryCC(b.appCtx.org[0], b.chaincodes[0], "getBalance", [][]byte{[]byte("peer1.org1.flxdu.cn")})
 	if err != nil {
 		return
 	}
-	log.Println(string(resp.Payload))
-	resp, err = queryCC(appCtx.org[2], chaincodes[2], "getBalance", [][]byte{[]byte("peer0.org3.flxdu.cn")})
-	if err != nil {
-		return
-	}
-	log.Println(string(resp.Payload))
-	resp, err = queryCC(appCtx.org[2], chaincodes[2], "getBalance", [][]byte{[]byte("peer1.org3.flxdu.cn")})
-	if err != nil {
-		return
-	}
-	log.Println(string(resp.Payload))
-	resp, err = queryCC(appCtx.org[3], chaincodes[3], "getBalance", [][]byte{[]byte("peer0.org4.flxdu.cn")})
-	if err != nil {
-		return
-	}
-	log.Println(string(resp.Payload))
-	resp, err = queryCC(appCtx.org[3], chaincodes[3], "getBalance", [][]byte{[]byte("peer1.org4.flxdu.cn")})
-	if err != nil {
-		return
-	}
-	log.Println(string(resp.Payload))
+	log.Println(string(resp.Payload))*/
 	return
 }
 
-func executeCC(org *types.Org, cc *types.Chaincode, fcn string, args [][]byte, peers []fab.Peer) (resp channel.Response, err error) {
-	client, err := org.ChannelClient(sdk, cc.ChannelID)
+func (b *bench) executeCC(org *types.Org, cc *types.Chaincode, fcn string, args [][]byte) (resp channel.Response, err error) {
+	client, err := org.ChannelClient(b.sdk, cc.ChannelID)
 	if err != nil {
 		return
 	}
-	resp, err = client.Execute(channel.Request{ChaincodeID: cc.Name, Fcn: fcn, Args: args}, channel.WithTargets(peers...), channel.WithRetry(retry.DefaultChannelOpts), channel.WithTimeout(fab.Execute, 3*time.Second))
+	resp, err = client.Execute(channel.Request{ChaincodeID: cc.Name, Fcn: fcn, Args: args}, channel.WithRetry(retry.DefaultChannelOpts), channel.WithTimeout(fab.Execute, 3*time.Second))
 	if err != nil {
 		return
 	}
@@ -223,7 +194,7 @@ func executeCC(org *types.Org, cc *types.Chaincode, fcn string, args [][]byte, p
 		err = errors.Errorf("chaincode execute tx validate failed, code: [%s]", resp.TxValidationCode.String())
 		return
 	}
-	log.Printf("Execute chaincode [%s] done, channel: [%s], caller: [%s], func: [%s], args: %s, TxID: [%s]", cc.Name, cc.ChannelID, org.Name, fcn, args, resp.TransactionID)
+	//log.Printf("Execute chaincode [%s] done, channel: [%s], caller: [%s], func: [%s], args: %s, TxID: [%s]", cc.Name, cc.ChannelID, org.Name, fcn, args, resp.TransactionID)
 	return
 }
 
@@ -244,33 +215,33 @@ func queryCC(org *types.Org, cc *types.Chaincode, fcn string, args [][]byte) (re
 	return
 }
 
-func setupSDK() (err error) {
+func (b *bench) setupSDK() (err error) {
 	// Create SDK setupNetwork
-	sdk, err = fabsdk.New(config.FromFile(configPath))
+	b.sdk, err = fabsdk.New(config.FromFile(b.configPath))
 	if err != nil {
 		return errors.Wrap(err, "Failed to create new SDK")
 	}
 
-	appCtx = NewContext()
-	appCtx.NewOrgs(orgs)
+	b.appCtx = NewContext()
+	b.appCtx.NewOrgs(b.orgs)
 
-	appCtx.ordererClientContext = sdk.Context(fabsdk.WithUser("Admin"), fabsdk.WithOrg("OrdererOrg"))
-	appCtx.ordererResMgmt, err = resmgmt.New(appCtx.ordererClientContext)
-	appCtx.ordererEndpoint = ordererEndpoint
+	b.appCtx.ordererClientContext = b.sdk.Context(fabsdk.WithUser("Admin"), fabsdk.WithOrg("OrdererOrg"))
+	b.appCtx.ordererResMgmt, err = resmgmt.New(b.appCtx.ordererClientContext)
+	b.appCtx.ordererEndpoint = b.ordererEndpoint
 
 	if err != nil {
 		return err
 	}
-	for _, o := range appCtx.org {
-		err = o.NewClient(sdk)
+	for _, o := range b.appCtx.org {
+		err = o.NewClient(b.sdk)
 		if err != nil {
 			return err
 		}
-		err = o.LoadPeers(sdk)
+		err = o.LoadPeers(b.sdk)
 		if err != nil {
 			return err
 		}
-		o.NewAdminClientCtx(sdk)
+		o.NewAdminClientCtx(b.sdk)
 		_, err = utils.DiscoverLocalPeers(o.AdminClientContext, len(o.Peers))
 		if err != nil {
 			return err
@@ -281,7 +252,7 @@ func setupSDK() (err error) {
 		}
 	}
 
-	appCtx.channels, err = loadConfig()
+	b.appCtx.channels, err = b.loadConfig()
 	if err != nil {
 		return errors.Wrap(err, "Failed to load config")
 	}
@@ -694,8 +665,8 @@ func packageCC(ccName, ccVersion, ccPath string) (string, []byte) {
 	return desc.Label, ccPkg
 }
 
-func loadConfig() (channels []*types.Channel, err error) {
-	conf, err := sdk.Config()
+func (b *bench) loadConfig() (channels []*types.Channel, err error) {
+	conf, err := b.sdk.Config()
 	if err != nil {
 		return
 	}
@@ -715,7 +686,7 @@ func loadConfig() (channels []*types.Channel, err error) {
 			peers := v.(map[string]interface{})["peers"].(map[string]interface{})
 			for name, c := range peers {
 				ch.PeersHostname = append(ch.PeersHostname, name)
-				if fabPeer, _ := appCtx.LookupPeer(name); fabPeer != nil {
+				if fabPeer, _ := b.appCtx.LookupPeer(name); fabPeer != nil {
 					ch.Peers = append(ch.Peers, fabPeer)
 					fabPeer.Channel = append(fabPeer.Channel, ch)
 				}
