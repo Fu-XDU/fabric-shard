@@ -1,6 +1,6 @@
-# fabric shard
+# fabric startup
 
-基于Hyperledger fabric的分片共识。
+启动Hyperledger fabric节点集群的小工具。
 
 `fabricdev`：docker-compose配置文件和终端命令
 
